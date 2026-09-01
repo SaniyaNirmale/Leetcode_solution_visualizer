@@ -251,7 +251,19 @@ async function startAnalysis() {
     startLoadingAnimation();
 
     try {
-        let trace = await executeDeterministicTrace(code, example);
+        let trace;
+        if (lang === 'python') {
+            trace = await executeDeterministicTrace(code, example);
+        } else {
+            // Basic fallback trace for Java
+            const steps = [];
+            code.split('\n').forEach((lineStr, i) => {
+                if (lineStr.trim()) {
+                    steps.push({ line: i + 1, variables: {}, visualization: {} });
+                }
+            });
+            trace = { visualization_type: "linked_list", steps: steps };
+        }
         
         // Pass the raw mathematical trace to AI for explanation text
         try {
