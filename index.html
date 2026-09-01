@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSA Code Visualizer — Step-by-Step Dry Run</title>
+    <meta name="description" content="Visualize your LeetCode DSA code execution step by step with AI-powered dry run animations for any programming language">
+    <link rel="stylesheet" href="styles.css">
+    <!-- Prism.js Theme for Code Highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <!-- Pyodide for Deterministic Python Execution -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- ═══════════════════════════ HEADER ═══════════════════════════ -->
+    <header class="header">
+        <div class="header-inner">
+            <div class="header-brand">
+                <div class="header-logo">
+                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                        <rect width="28" height="28" rx="8" fill="rgba(255,255,255,0.15)"/>
+                        <path d="M7 14 L11 10 L11 18 Z" fill="#a78bfa"/>
+                        <path d="M13 8 L17 14 L13 20 Z" fill="#60a5fa"/>
+                        <path d="M18 11 L22 14 L18 17 Z" fill="#34d399"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="header-title">DSA Code Visualizer</h1>
+                    <p class="header-subtitle">Teach the logic — not just the final answer. Step through every line.</p>
+                </div>
+            </div>
+            <button class="settings-btn" id="settingsBtn" aria-label="Open API settings">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+                Settings
+            </button>
+        </div>
+    </header>
+
+    <!-- ═══════════════════════════ SETTINGS MODAL ═══════════════════════════ -->
+    <div class="modal-overlay" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modalTitle">⚙️ API Settings</h3>
+                <button class="modal-close" id="closeModal" aria-label="Close settings">✕</button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label" for="apiKeyInput">Groq API Key</label>
+                <input type="password" class="form-input" id="apiKeyInput" placeholder="gsk_...">
+                <p class="form-hint">
+                    Get your <strong>free</strong> key at
+                    <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a>.
+                    Free tier: <strong>14,400 requests/day</strong>, no credit card needed.
+                    Your key is stored only in your browser.
+                </p>
+                <div class="api-status" id="apiStatus" style="display:none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" id="cancelModal">Cancel</button>
+                <button class="btn btn-primary" id="saveApiKey">Save Key</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════ MAIN ═══════════════════════════ -->
+    <main class="main">
+
+        <!-- ── Control Bar ── -->
+        <section class="control-card" aria-label="Controls">
+            <div class="control-row-top">
+                <div class="control-field control-field--sm">
+                    <label class="control-label" for="languageSelect">Language (Python only)</label>
+                    <select class="control-select" id="languageSelect" disabled>
+                        <option value="python">Python</option>
+                    </select>
+                </div>
+                <div class="control-field control-field--grow">
+                    <label class="control-label" for="problemTitle">Problem Title <span class="optional">(optional)</span></label>
+                    <input type="text" class="control-input" id="problemTitle" placeholder="e.g., Two Sum, Binary Search, Reverse String...">
+                </div>
+                <div class="control-field control-field--grow">
+                    <label class="control-label" for="exampleInput">Example Input</label>
+                    <input type="text" class="control-input" id="exampleInput" placeholder="e.g., nums=[2,7,11,15], target=9">
+                </div>
+            </div>
+            <div class="control-row-bottom">
+                <button class="btn btn-primary btn-build" id="buildBtn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                    Build &amp; Analyze
+                </button>
+                <div class="nav-group">
+                    <button class="btn btn-ghost" id="resetBtn" disabled title="Reset to input screen">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.25"/></svg>
+                        Reset
+                    </button>
+                    <button class="btn btn-ghost" id="prevBtn" disabled>← Back</button>
+                    <button class="btn btn-primary" id="nextBtn" disabled>Next step →</button>
+                    <button class="btn btn-success" id="playBtn" disabled>
+                        <span id="playBtnIcon">▶</span> <span id="playBtnText">Play</span>
+                    </button>
+                    <select class="control-select" id="speedSelect" title="Playback speed" style="height:36px;font-size:.78rem;min-width:0;width:auto;padding:4px 8px;">
+                        <option value="2500">0.5×</option>
+                        <option value="1800" selected>1×</option>
+                        <option value="1000">1.5×</option>
+                        <option value="600">2×</option>
+                        <option value="300">3×</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── Problem Description Banner ── -->
+        <div class="problem-banner" id="problemBanner" style="display:none;">
+            <div class="problem-banner-bar"></div>
+            <div class="problem-banner-content">
+                <span class="problem-label" id="problemLabel">Problem</span>
+                <span class="problem-desc-text" id="problemDescText"></span>
+            </div>
+        </div>
+
+        <!-- ══════════ INPUT SECTION ══════════ -->
+        <section class="input-section" id="inputSection">
+
+
+
+            <div class="input-main-row">
+                <!-- Code Editor -->
+                <div class="input-card">
+                    <div class="input-card-header">
+                        <div class="input-card-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                        </div>
+                        <div style="flex:1">
+                            <h2 class="input-card-title">Your Code</h2>
+                            <p class="input-card-sub">Paste your solution — any language, any problem</p>
+                        </div>
+                        <button class="btn btn-ghost btn-sm" id="clearCodeBtn" title="Clear editor">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                            Clear
+                        </button>
+                    </div>
+                    <div class="code-editor-wrap">
+                        <div class="line-nums" id="lineNums">1</div>
+                        <textarea
+                            class="code-textarea"
+                            id="codeInput"
+                            spellcheck="false"
+                            autocorrect="off"
+                            autocapitalize="off"
+                            placeholder="// Paste your code here or pick a quick-start template above..."
+                        ></textarea>
+                    </div>
+                    <div class="editor-footer">
+                        <span class="editor-stat" id="editorStat">0 lines</span>
+                        <span class="editor-tip">Tab = 4 spaces &nbsp;|&nbsp; Ctrl+A to select all</span>
+                    </div>
+                </div>
+
+                <!-- Right side: Example input + how-it-works -->
+                <div class="input-side">
+                    <div class="side-card">
+                        <div class="side-card-head">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                            Example Input
+                        </div>
+                        <textarea
+                            class="example-textarea"
+                            id="exampleInput"
+                            placeholder="Describe your example input here.&#10;&#10;e.g.:&#10;nums = [2, 7, 11, 15]&#10;target = 9"
+                            rows="6"
+                            spellcheck="false"
+                        ></textarea>
+                        <p class="side-hint">Be as specific as possible — include all variables and their values.</p>
+                    </div>
+
+                    <div class="side-card how-it-works">
+                        <div class="side-card-head">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                            How it works
+                        </div>
+                        <ol class="how-steps">
+                            <li><strong>Pick a language</strong> from the dropdown above</li>
+                            <li><strong>Paste your code</strong> or choose a template</li>
+                            <li><strong>Enter an example input</strong> to trace through</li>
+                            <li>Click <strong>Build &amp; Analyze</strong> — AI generates the full dry run</li>
+                            <li>Step through with <strong>Next / Back</strong> or press <strong>Play</strong></li>
+                        </ol>
+                        <div class="supported-langs">
+                            <span class="langs-label">Supported:</span>
+                            <span class="lang-tag lang-tag--java">☕ Java</span>
+                            <span class="lang-tag lang-tag--python">🐍 Python</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══════════ LOADING SECTION ══════════ -->
+        <section class="loading-section" id="loadingSection" style="display:none;" aria-live="polite">
+            <div class="loading-card">
+                <div class="loading-ring">
+                    <div></div><div></div><div></div><div></div>
+                </div>
+                <h3>Generating Dry Run...</h3>
+                <p>AI is reading your code and creating a step-by-step execution trace</p>
+                <div class="loading-steps">
+                    <div class="loading-step active" id="ls1">Parsing code structure</div>
+                    <div class="loading-step" id="ls2">Simulating execution</div>
+                    <div class="loading-step" id="ls3">Building animation frames</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══════════ ERROR SECTION ══════════ -->
+        <section class="error-section" id="errorSection" style="display:none;" aria-live="assertive">
+            <div class="error-card">
+                <div class="error-icon">⚠️</div>
+                <h3>Something went wrong</h3>
+                <p id="errorText">An error occurred while generating the dry run.</p>
+                <div class="error-actions">
+                    <button class="btn btn-ghost" id="errorResetBtn">← Start Over</button>
+                    <button class="btn btn-primary" id="retryBtn">↺ Retry</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══════════ VISUALIZATION SECTION ══════════ -->
+        <section class="viz-section" id="vizSection" style="display:none;">
+            <div class="panels">
+
+                <!-- ── Left: Live Visualization ── -->
+                <div class="panel panel--left">
+                    <div class="panel-head">
+                        <h3 class="panel-title">Live Visualization</h3>
+                        <div class="legend" id="vizLegend"></div>
+                    </div>
+
+                    <div class="viz-canvas" id="vizCanvas">
+                        <!-- Dynamic content injected by visualizer.js -->
+                    </div>
+                    
+                    <div id="linearOutput" class="linear-output" style="display:none;"></div>
+
+                    <!-- Variables Row (Hidden by user request) -->
+                    <div class="vars-section" id="varsSection" style="display:none;">
+                        <div class="vars-title">Variables</div>
+                        <div class="vars-grid" id="varsGrid"></div>
+                    </div>
+
+                    <!-- Progress -->
+                    <div class="progress-wrap">
+                        <div class="progress-meta">
+                            <span class="progress-start-label">Start</span>
+                            <span class="progress-step-label" id="stepLabel">Step — of —</span>
+                        </div>
+                        <div class="progress-track">
+                            <div class="progress-thumb" id="progressThumb" style="width:0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Step Explanation -->
+                    <div class="step-box" id="stepBox">
+                        <div class="step-box-text" id="stepBoxText">—</div>
+                    </div>
+                    <div class="why-box" id="whyBox" style="display:none;">
+                        <span class="why-label">Why this works:</span>
+                        <span class="why-text" id="whyBoxText">—</span>
+                    </div>
+                </div>
+
+                <!-- ── Right: Code Panel ── -->
+                <div class="panel panel--right">
+                    <div class="panel-head">
+                        <h3 class="panel-title">Code, synchronized</h3>
+                        <span class="panel-badge">Highlighted line is executing</span>
+                    </div>
+
+                    <div class="code-viewer" id="codeViewer">
+                        <!-- Lines rendered by app.js -->
+                    </div>
+
+                    <div class="narration-wrap">
+                        <h4 class="narration-heading">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                            Step Narration
+                        </h4>
+                        <div class="narration-text" id="narrationText">—</div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ═══════════════════════════ NO-API WARNING ═══════════════════════════ -->
+    <div class="api-warning" id="apiWarning" style="display:none;">
+        <span>⚠️ No Groq API key set. It's free!</span>
+        <button class="api-warning-btn" id="apiWarningBtn">Get Free Key →</button>
+    </div>
+
+    <script src="visualizer.js"></script>
+    <script src="py-tracer.js"></script>
+    <script src="ai-service.js"></script>
+    <script src="app.js"></script>
+
+    <!-- Prism.js Core and Languages -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+</body>
+</html>
